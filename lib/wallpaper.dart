@@ -19,20 +19,21 @@ class _WallpaperState extends State<Wallpaper> {
     fetchApi();
   }
   List images  = [];
-  int page = 0;
+  int page = 1;
+
+  String query = "nature";
+  final TextEditingController _searchController = TextEditingController();
+  bool isSearch = false;
+
   fetchApi() async{
-    await http.get(Uri.parse("https://api.pexels.com/v1/curated?per_page=80"),
+    await http.get(Uri.parse("https://api.pexels.com/v1/curated?per_page=80&page=$page"),
         headers: {
           'Authorization' : 'MzE1kZGTc57BROJPdNFqVfYLpt7ubyYHieCsapxy9IFJMk78o3J8LfBU'
         }).then((value){
-
       Map result = jsonDecode(value.body);
-      //print(result);
       setState(() {
         images = result['photos'];
       });
-
-      //print(images[0]);
     });
   }
 
@@ -40,22 +41,60 @@ class _WallpaperState extends State<Wallpaper> {
     setState(() {
       page = page + 1;
     });
-    String url = "https://api.pexels.com/v1/curated?per_page=80&"+"page="+page.toString();
+    String url = isSearch
+        ? "https://api.pexels.com/v1/search?query=$query&per_page=80&page=$page"
+        : "https://api.pexels.com/v1/curated?per_page=80&page=$page";
 
     await http.get(Uri.parse(url),
         headers: {
           'Authorization' : 'MzE1kZGTc57BROJPdNFqVfYLpt7ubyYHieCsapxy9IFJMk78o3J8LfBU'
         }).then((value){
-          Map result = jsonDecode(value.body);
-          setState(() {
-            images.addAll(result['photos']);
-          });
+      Map result = jsonDecode(value.body);
+      setState(() {
+        images.addAll(result['photos']);
+      });
+    });
+  }
+
+  void searchImages() async{
+    setState(() {
+      query = _searchController.text;
+      print(query);
+      page = 1;
+      isSearch = query.isNotEmpty;
+    });
+
+    String url = "https://api.pexels.com/v1/search?query=$query&per_page=80&page=$page";
+    await http.get(Uri.parse(url),
+        headers: {
+          'Authorization' : 'MzE1kZGTc57BROJPdNFqVfYLpt7ubyYHieCsapxy9IFJMk78o3J8LfBU'
+        }).then((value){
+      Map result2 = jsonDecode(value.body);
+      setState(() {
+        images = result2['photos'];
+      });
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: "Search Wallpapers",
+            border: InputBorder.none,
+          ),
+          onSubmitted: (value) => searchImages(),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: searchImages,
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(child: Container(
@@ -63,12 +102,12 @@ class _WallpaperState extends State<Wallpaper> {
             width: double.infinity,
             color: Colors.black,
             child: GridView.builder(
-              itemCount: images.length,
+                itemCount: images.length,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 2,
-                  childAspectRatio: 2/3,
-                  mainAxisSpacing: 2
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 2,
+                    childAspectRatio: 2/3,
+                    mainAxisSpacing: 2
                 ),
                 itemBuilder: (context,index){
                   return InkWell(
@@ -82,7 +121,7 @@ class _WallpaperState extends State<Wallpaper> {
                     child: Container(
                       color: Colors.white,
                       child: Image.network(images[index]['src']['tiny'],
-                      fit: BoxFit.cover,),
+                        fit: BoxFit.cover,),
                     ),
                   );
                 }
@@ -93,8 +132,8 @@ class _WallpaperState extends State<Wallpaper> {
             child: Container(child: Center(
               child: Text("Load More",
                 style: TextStyle(
-                fontSize: 20,color: Colors.white
-              ),),
+                    fontSize: 20,color: Colors.white
+                ),),
             )),
           ),
 
