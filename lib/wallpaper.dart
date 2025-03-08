@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:wallpaper/fullScreen.dart';
@@ -11,25 +10,23 @@ class Wallpaper extends StatefulWidget {
 }
 
 class _WallpaperState extends State<Wallpaper> {
-
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     fetchApi();
   }
-  List images  = [];
-  int page = 1;
 
-  String query = "nature";
+  List images = [];
+  int page = 0;
+  String query = "";
   final TextEditingController _searchController = TextEditingController();
   bool isSearch = false;
 
-  fetchApi() async{
+  fetchApi() async {
     await http.get(Uri.parse("https://api.pexels.com/v1/curated?per_page=80&page=$page"),
         headers: {
-          'Authorization' : 'MzE1kZGTc57BROJPdNFqVfYLpt7ubyYHieCsapxy9IFJMk78o3J8LfBU'
-        }).then((value){
+          'Authorization': 'MzE1kZGTc57BROJPdNFqVfYLpt7ubyYHieCsapxy9IFJMk78o3J8LfBU'
+        }).then((value) {
       Map result = jsonDecode(value.body);
       setState(() {
         images = result['photos'];
@@ -37,7 +34,7 @@ class _WallpaperState extends State<Wallpaper> {
     });
   }
 
-  loadMore() async{
+  loadMore() async {
     setState(() {
       page = page + 1;
     });
@@ -47,8 +44,8 @@ class _WallpaperState extends State<Wallpaper> {
 
     await http.get(Uri.parse(url),
         headers: {
-          'Authorization' : 'MzE1kZGTc57BROJPdNFqVfYLpt7ubyYHieCsapxy9IFJMk78o3J8LfBU'
-        }).then((value){
+          'Authorization': 'MzE1kZGTc57BROJPdNFqVfYLpt7ubyYHieCsapxy9IFJMk78o3J8LfBU'
+        }).then((value) {
       Map result = jsonDecode(value.body);
       setState(() {
         images.addAll(result['photos']);
@@ -56,19 +53,23 @@ class _WallpaperState extends State<Wallpaper> {
     });
   }
 
-  void searchImages() async{
+  void searchImages() async {
     setState(() {
       query = _searchController.text;
-      print(query);
-      page = 1;
       isSearch = query.isNotEmpty;
+      page = 1;
     });
+
+    if (query.isEmpty) {
+      fetchApi(); // Reset to curated wallpapers if query is empty
+      return;
+    }
 
     String url = "https://api.pexels.com/v1/search?query=$query&per_page=80&page=$page";
     await http.get(Uri.parse(url),
         headers: {
-          'Authorization' : 'MzE1kZGTc57BROJPdNFqVfYLpt7ubyYHieCsapxy9IFJMk78o3J8LfBU'
-        }).then((value){
+          'Authorization': 'MzE1kZGTc57BROJPdNFqVfYLpt7ubyYHieCsapxy9IFJMk78o3J8LfBU'
+        }).then((value) {
       Map result2 = jsonDecode(value.body);
       setState(() {
         images = result2['photos'];
@@ -86,6 +87,11 @@ class _WallpaperState extends State<Wallpaper> {
             hintText: "Search Wallpapers",
             border: InputBorder.none,
           ),
+          onChanged: (value) {
+            if (value.isEmpty) {
+              searchImages();
+            }
+          },
           onSubmitted: (value) => searchImages(),
         ),
         actions: [
@@ -97,46 +103,48 @@ class _WallpaperState extends State<Wallpaper> {
       ),
       body: Column(
         children: [
-          Expanded(child: Container(
-            height: 60,
-            width: double.infinity,
-            color: Colors.black,
-            child: GridView.builder(
-                itemCount: images.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 2,
-                    childAspectRatio: 2/3,
-                    mainAxisSpacing: 2
-                ),
-                itemBuilder: (context,index){
-                  return InkWell(
-                    onTap: (){
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => Fullscreen(
-                                  imageUrl: images[index]['src']['large2x'])));
-                    },
-                    child: Container(
-                      color: Colors.white,
-                      child: Image.network(images[index]['src']['tiny'],
-                        fit: BoxFit.cover,),
-                    ),
-                  );
-                }
-            ),
-          )),
+          Expanded(
+              child: Container(
+                height: 60,
+                width: double.infinity,
+                color: Colors.black,
+                child: GridView.builder(
+                    itemCount: images.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 2,
+                        childAspectRatio: 2 / 3,
+                        mainAxisSpacing: 2),
+                    itemBuilder: (context, index) {
+                      return InkWell(
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => Fullscreen(
+                                      imageUrl: images[index]['src']['large2x'])));
+                        },
+                        child: Container(
+                          color: Colors.white,
+                          child: Image.network(
+                            images[index]['src']['tiny'],
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      );
+                    }),
+              )),
           InkWell(
             onTap: loadMore,
-            child: Container(child: Center(
-              child: Text("Load More",
-                style: TextStyle(
-                    fontSize: 20,color: Colors.white
-                ),),
-            )),
+            child: Container(
+              child: Center(
+                child: Text(
+                  "Load More",
+                  style: TextStyle(fontSize: 20, color: Colors.white),
+                ),
+              ),
+            ),
           ),
-
         ],
       ),
     );
