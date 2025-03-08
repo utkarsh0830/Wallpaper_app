@@ -1,6 +1,6 @@
 # wallpaper
 
-A wallpaper app to set on mobile
+A wallpaper app which fetch wallpaper on real time using Pixels Api and u can set on SmartPhone Home and lock Screen.
 
 ## Getting Started
 
